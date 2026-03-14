@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Canais Dark — Painel de Controle</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #0f172a;
+      color: #e2e8f0;
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      min-height: 100vh;
+      padding: 24px;
+    }
+
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 32px;
+    }
+
+    header h1 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: #f1f5f9;
+    }
+
+    header span {
+      font-size: 0.875rem;
+      color: #64748b;
+    }
+
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 16px;
+      margin-bottom: 32px;
+    }
+
+    .card {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 12px;
+      padding: 20px;
+    }
+
+    .card .label {
+      font-size: 0.75rem;
+      color: #94a3b8;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 8px;
+    }
+
+    .card .value {
+      font-size: 2rem;
+      font-weight: 700;
+      color: #f1f5f9;
+    }
+
+    .card.pendente .value { color: #fbbf24; }
+    .card.postado .value  { color: #34d399; }
+    .card.erro .value     { color: #f87171; }
+
+    .actions {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 32px;
+      flex-wrap: wrap;
+    }
+
+    button {
+      padding: 10px 20px;
+      border-radius: 8px;
+      border: none;
+      font-size: 0.875rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.2s;
+    }
+
+    button:hover { opacity: 0.85; }
+
+    .btn-primary  { background: #6366f1; color: #fff; }
+    .btn-secondary { background: #334155; color: #e2e8f0; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: #1e293b;
+      border-radius: 12px;
+      overflow: hidden;
+    }
+
+    thead th {
+      background: #0f172a;
+      padding: 12px 16px;
+      text-align: left;
+      font-size: 0.75rem;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    tbody tr {
+      border-top: 1px solid #334155;
+      transition: background 0.15s;
+    }
+
+    tbody tr:hover { background: #263044; }
+
+    tbody td {
+      padding: 12px 16px;
+      font-size: 0.875rem;
+      color: #cbd5e1;
+      max-width: 260px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 2px 10px;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+
+    .badge-pendente  { background: #78350f; color: #fbbf24; }
+    .badge-postado   { background: #064e3b; color: #34d399; }
+    .badge-erro      { background: #7f1d1d; color: #f87171; }
+
+    a { color: #818cf8; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    .empty {
+      text-align: center;
+      padding: 48px;
+      color: #475569;
+    }
+
+    #msg {
+      display: none;
+      background: #1e3a5f;
+      border: 1px solid #3b82f6;
+      color: #93c5fd;
+      padding: 12px 16px;
+      border-radius: 8px;
+      margin-bottom: 16px;
+    }
+
+    .filter-bar {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+    }
+
+    .filter-bar button {
+      padding: 6px 16px;
+      font-size: 0.8rem;
+    }
+
+    .filter-bar button.active {
+      background: #6366f1;
+      color: #fff;
+    }
+
+    .filter-bar button:not(.active) {
+      background: #334155;
+      color: #94a3b8;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>🎬 Canais Dark</h1>
+  <span id="lastUpdate">Carregando...</span>
+</header>
+
+<div class="cards">
+  <div class="card">
+    <div class="label">Total</div>
+    <div class="value" id="cnt-total">—</div>
+  </div>
+  <div class="card pendente">
+    <div class="label">Pendentes</div>
+    <div class="value" id="cnt-pendente">—</div>
+  </div>
+  <div class="card postado">
+    <div class="label">Postados</div>
+    <div class="value" id="cnt-postado">—</div>
+  </div>
+  <div class="card erro">
+    <div class="label">Erros</div>
+    <div class="value" id="cnt-erro">—</div>
+  </div>
+</div>
+
+<div id="msg"></div>
+
+<div class="actions">
+  <button class="btn-primary" onclick="processarAgora()">⚡ Processar Agora</button>
+  <button class="btn-secondary" onclick="carregarDados()">🔄 Atualizar</button>
+  <button class="btn-secondary" onclick="window.open('https://docs.google.com/spreadsheets/d/1dZJMKZtwr9pwJQMn4v9fpEjyb1Lpr1Sc8yqLomX3FwM', '_blank')">📊 Planilha</button>
+</div>
+
+<div class="filter-bar">
+  <button class="active" onclick="filtrar('todos', this)">Todos</button>
+  <button onclick="filtrar('Pendente', this)">Pendentes</button>
+  <button onclick="filtrar('Postado', this)">Postados</button>
+  <button onclick="filtrar('Erro', this)">Erros</button>
+</div>
+
+<table>
+  <thead>
+    <tr>
+      <th>Canal</th>
+      <th>Arquivo</th>
+      <th>Título SEO</th>
+      <th>Status</th>
+      <th>YouTube</th>
+      <th>Detectado</th>
+    </tr>
+  </thead>
+  <tbody id="tbody">
+    <tr><td colspan="6" class="empty">Carregando...</td></tr>
+  </tbody>
+</table>
+
+<script>
+  let todosVideos = [];
+  let filtroAtual = 'todos';
+
+  async function carregarDados() {
+    document.getElementById('lastUpdate').textContent = 'Atualizando...';
+    try {
+      const r = await fetch('/api/status');
+      const data = await r.json();
+      // /api/status só retorna pendentes; para um dashboard completo
+      // precisaríamos de um endpoint /api/videos que retorne todos.
+      // Por ora exibimos os pendentes.
+      todosVideos = data.videos || [];
+      renderizarTabela();
+      atualizarContadores();
+      document.getElementById('lastUpdate').textContent =
+        'Atualizado: ' + new Date().toLocaleTimeString('pt-BR');
+    } catch (e) {
+      mostrarMsg('Erro ao carregar dados: ' + e.message, 'erro');
+    }
+  }
+
+  function atualizarContadores() {
+    const total = todosVideos.length;
+    const pendente = todosVideos.filter(v => (v.status || 'Pendente') === 'Pendente').length;
+    const postado  = todosVideos.filter(v => v.status === 'Postado').length;
+    const erro     = todosVideos.filter(v => v.status === 'Erro').length;
+    document.getElementById('cnt-total').textContent = total;
+    document.getElementById('cnt-pendente').textContent = pendente;
+    document.getElementById('cnt-postado').textContent = postado;
+    document.getElementById('cnt-erro').textContent = erro;
+  }
+
+  function filtrar(status, btn) {
+    filtroAtual = status;
+    document.querySelectorAll('.filter-bar button').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    renderizarTabela();
+  }
+
+  function renderizarTabela() {
+    const tbody = document.getElementById('tbody');
+    const lista = filtroAtual === 'todos'
+      ? todosVideos
+      : todosVideos.filter(v => (v.status || 'Pendente') === filtroAtual);
+
+    if (lista.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="6" class="empty">Nenhum vídeo encontrado.</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = lista.map(v => {
+      const status = v.status || 'Pendente';
+      const badgeClass = status === 'Postado' ? 'badge-postado'
+                       : status === 'Erro'    ? 'badge-erro'
+                       : 'badge-pendente';
+      const ytLink = v.linkYoutube
+        ? `<a href="${v.linkYoutube}" target="_blank">Assistir</a>`
+        : '—';
+      return `<tr>
+        <td title="${v.canal}">${v.canal || '—'}</td>
+        <td title="${v.nomeArquivo}">${v.nomeArquivo || '—'}</td>
+        <td title="${v.tituloYoutube || ''}">${v.tituloYoutube || '—'}</td>
+        <td><span class="badge ${badgeClass}">${status}</span></td>
+        <td>${ytLink}</td>
+        <td>${v.dataDeteccao || '—'}</td>
+      </tr>`;
+    }).join('');
+  }
+
+  async function processarAgora() {
+    mostrarMsg('Processando... aguarde o próximo ciclo.', 'info');
+    try {
+      await fetch('/api/processar-agora', { method: 'POST' });
+      setTimeout(carregarDados, 3000);
+    } catch (e) {
+      mostrarMsg('Erro: ' + e.message, 'erro');
+    }
+  }
+
+  function mostrarMsg(texto, tipo) {
+    const el = document.getElementById('msg');
+    el.textContent = texto;
+    el.style.display = 'block';
+    if (tipo === 'erro') el.style.borderColor = '#ef4444';
+    else el.style.borderColor = '#3b82f6';
+    setTimeout(() => { el.style.display = 'none'; }, 5000);
+  }
+
+  // Carrega ao iniciar e a cada 60s
+  carregarDados();
+  setInterval(carregarDados, 60000);
+</script>
+
+</body>
+</html>
