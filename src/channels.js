@@ -15,12 +15,9 @@ const CHANNELS = {
     refreshTokenEnv: 'YOUTUBE_REFRESH_TOKEN_CANAL_CRISTAO',
     tokenFile: './credenciais/token_canal_cristao.json',
     oauthPort: 8081,
-    // Pasta "aguardando-publicacao-canal-cristao"
     driveAguardando: '1ygkXfU3FqzcFYh7EYQqaDRidOSeWykqV',
-    // Pasta "publicados-canal-cristao"
-    drivePublicados: '1Y1CZfRvcjUAKQe7PX-_zS6KwVhlv_y_X',
+    drivePublicados:  '1Y1CZfRvcjUAKQe7PX-_zS6KwVhlv_y_X',
     nicho: 'cristão',
-    // Categoria YouTube: 22 = People & Blogs (adequada para conteúdo cristão)
     youtubeCategory: '22',
   },
 
@@ -31,29 +28,34 @@ const CHANNELS = {
     refreshTokenEnv: 'YOUTUBE_REFRESH_TOKEN_FRUTAS_SINCERONAS',
     tokenFile: './credenciais/token_frutas_sinceronas.json',
     oauthPort: 8082,
-    // Pasta "aguardando-publicacao-frutas-sinceronas"
     driveAguardando: '1uttD7j14MxMW2obpJMS8_I6mzUCXdrv6',
-    // Pasta "publicados-frutas-sinceronas"
-    drivePublicados: '1s6LaVPSdxBwmj50c5ndsD8PMOF5KxO2x',
+    drivePublicados:  '1s6LaVPSdxBwmj50c5ndsD8PMOF5KxO2x',
     nicho: 'frutas',
-    // Categoria YouTube: 22 = People & Blogs
     youtubeCategory: '22',
+  },
+
+  // ── CANAL POLÍTICO — PARTIDO MISSÃO ─────────────────────────────
+  'missao': {
+    name: 'Missão',
+    youtubeEmail: 'EMAIL_DO_CANAL_MISSAO@gmail.com',     // ← substitua
+    youtubeUrl:   'https://www.youtube.com/@CANAL_MISSAO', // ← substitua
+    refreshTokenEnv: 'YOUTUBE_REFRESH_TOKEN_MISSAO',
+    tokenFile: './credenciais/token_missao.json',
+    oauthPort: 8083,
+    // ↓ Crie as pastas no Drive e cole os IDs aqui
+    driveAguardando: 'ID_PASTA_AGUARDANDO_MISSAO',        // ← substitua
+    drivePublicados:  'ID_PASTA_PUBLICADOS_MISSAO',        // ← substitua
+    nicho: 'político',
+    youtubeCategory: '25',  // 25 = News & Politics
   },
 };
 
-/**
- * Retorna a lista de chaves de canais configurados
- * @returns {string[]}
- */
+/** Retorna a lista de chaves de canais configurados */
 function getChannelKeys() {
   return Object.keys(CHANNELS);
 }
 
-/**
- * Retorna a configuração de um canal pelo nome (chave)
- * @param {string} key
- * @returns {object}
- */
+/** Retorna a configuração de um canal pelo nome (chave) */
 function getChannel(key) {
   const ch = CHANNELS[key];
   if (!ch) throw new Error(`Canal não encontrado: "${key}". Canais disponíveis: ${getChannelKeys().join(', ')}`);

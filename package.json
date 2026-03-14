@@ -10,14 +10,17 @@
     "auth:frutas-sinceronas": "node src/auth/auth_frutas_sinceronas.js",
     "test:drive": "node -e \"const {listVideosForChannel}=require('./src/drive');const {CHANNELS}=require('./src/channels');listVideosForChannel(CHANNELS['canal-cristao']).then(v=>console.log('Canal Cristao:',v.length,v))\"",
     "test:sheets": "node -e \"require('./src/sheets').getPendingVideos().then(v=>console.log('Pendentes:',v.length,v))\"",
-    "test:seo": "node -e \"require('./src/seo').gerarSEO({nomeArquivo:'Jesus-cura-ansiedade.mp4',nomeCanal:'Canal Cristao',nicho:'cristao'}).then(s=>console.log(JSON.stringify(s,null,2)))\""
+    "auth:missao": "node src/auth/auth_missao.js",
+    "test:seo": "node -e \"require('./src/seo').gerarSEO({nomeArquivo:'Jesus-cura-ansiedade.mp4',nomeCanal:'Canal Cristao',nicho:'cristao'}).then(s=>console.log(JSON.stringify(s,null,2)))\"",
+    "test:clips": "node -e \"require('./src/clips/clipper').cicloDeCortess().then(()=>console.log('ciclo concluído'))\""
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.39.0",
     "dotenv": "^16.0.0",
     "express": "^4.18.0",
     "googleapis": "^144.0.0",
     "node-cron": "^3.0.0",
-    "@anthropic-ai/sdk": "^0.39.0"
+    "openai": "^6.29.0"
   },
   "engines": {
     "node": ">=18.0.0"
