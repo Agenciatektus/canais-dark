@@ -37,14 +37,13 @@ const CHANNELS = {
   // ── CANAL POLÍTICO — PARTIDO MISSÃO ─────────────────────────────
   'missao': {
     name: 'Missão',
-    youtubeEmail: 'EMAIL_DO_CANAL_MISSAO@gmail.com',     // ← substitua
-    youtubeUrl:   'https://www.youtube.com/@CANAL_MISSAO', // ← substitua
+    youtubeEmail: 'cortesmissao46@gmail.com',
+    youtubeUrl:   'https://www.youtube.com/@cortes14missao',
     refreshTokenEnv: 'YOUTUBE_REFRESH_TOKEN_MISSAO',
     tokenFile: './credenciais/token_missao.json',
     oauthPort: 8083,
-    // ↓ Crie as pastas no Drive e cole os IDs aqui
-    driveAguardando: 'ID_PASTA_AGUARDANDO_MISSAO',        // ← substitua
-    drivePublicados:  'ID_PASTA_PUBLICADOS_MISSAO',        // ← substitua
+    driveAguardando: '1iSHA3bMgGFk0TD7a9aJ0Ai2idoTqHilT',
+    drivePublicados:  '1zpW0-uPRt2BImBeOBFeiGGEGTAS6qrKU',
     nicho: 'político',
     youtubeCategory: '25',  // 25 = News & Politics
   },
