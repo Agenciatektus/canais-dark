@@ -8,6 +8,8 @@ const { extrairFileId } = require('../drive');
 
 const execFileAsync = promisify(execFile);
 const CREDENTIALS_PATH = path.join(__dirname, '..', '..', 'credenciais', 'google_credentials.json');
+const YTDLP  = process.env.YTDLP_PATH  || 'yt-dlp';
+const FFPROBE = process.env.FFPROBE_PATH || 'ffprobe';
 
 function getDriveClient() {
   const raw = JSON.parse(fs.readFileSync(CREDENTIALS_PATH, 'utf8'));
@@ -22,36 +24,55 @@ function getDriveClient() {
 }
 
 /**
- * Baixa vídeo do YouTube via yt-dlp
- * @returns {{ localPath, title, duration, description }}
+ * Baixa vídeo do YouTube via yt-dlp.
+ * Usa o ID do vídeo como nome do arquivo para evitar problemas com caracteres especiais.
  */
 async function downloadFromYouTube(youtubeUrl, destDir) {
   fs.mkdirSync(destDir, { recursive: true });
 
-  const { stdout: metaJson } = await execFileAsync('yt-dlp', [
+  // Busca metadados primeiro
+  const { stdout: metaJson } = await execFileAsync(YTDLP, [
     '--dump-json', '--no-playlist', youtubeUrl,
   ]);
   const meta = JSON.parse(metaJson);
 
-  const safeTitle = (meta.title || 'video')
-    .replace(/[^\w\s-]/g, '').trim().substring(0, 60).trim();
-  const outPath = path.join(destDir, `${safeTitle}.mp4`);
+  // Usa o ID do vídeo como nome — evita problemas com caracteres especiais no título
+  const videoId = meta.id || 'video';
+  const outPath = path.join(destDir, `${videoId}.mp4`);
 
-  await execFileAsync('yt-dlp', [
-    '-f', 'bestvideo[height<=1080][ext=mp4]+bestaudio[ext=m4a]/best[height<=1080][ext=mp4]/best',
+  // Extrai diretório do ffmpeg para que o yt-dlp consiga fazer o merge
+  const ffmpegBin = process.env.FFMPEG_PATH || 'ffmpeg';
+  const ffmpegDir = ffmpegBin !== 'ffmpeg' ? path.dirname(ffmpegBin) : null;
+
+  const ytdlpArgs = [
+    '-f', 'bestvideo[height<=1080][ext=mp4]+bestaudio[ext=m4a]/bestvideo[height<=1080]+bestaudio/best[height<=1080]/best',
     '--merge-output-format', 'mp4',
     '-o', outPath,
     '--no-playlist',
-    youtubeUrl,
-  ]);
+  ];
+  if (ffmpegDir) ytdlpArgs.push('--ffmpeg-location', ffmpegDir);
+  ytdlpArgs.push(youtubeUrl);
 
+  await execFileAsync(YTDLP, ytdlpArgs, { maxBuffer: 50 * 1024 * 1024 });
+
+  // Verifica o arquivo criado
   if (!fs.existsSync(outPath)) {
-    throw new Error(`yt-dlp não gerou o arquivo esperado: ${outPath}`);
+    // Prefere arquivo sem código de formato no nome (ex: video.mp4, não video.f399.mp4)
+    const allMp4s = fs.readdirSync(destDir).filter(f => f.endsWith('.mp4'));
+    const merged  = allMp4s.find(f => !/\.\w+\.mp4$/.test(f)); // sem .fXXX. no nome
+    const chosen  = merged || allMp4s[0];
+    if (!chosen) throw new Error(`yt-dlp não gerou nenhum arquivo MP4 em: ${destDir}`);
+    return {
+      localPath:   path.join(destDir, chosen),
+      title:       meta.title || videoId,
+      duration:    meta.duration || 0,
+      description: (meta.description || '').slice(0, 2000),
+    };
   }
 
   return {
-    localPath: outPath,
-    title:       meta.title || safeTitle,
+    localPath:   outPath,
+    title:       meta.title || videoId,
     duration:    meta.duration || 0,
     description: (meta.description || '').slice(0, 2000),
   };
@@ -59,7 +80,6 @@ async function downloadFromYouTube(youtubeUrl, destDir) {
 
 /**
  * Baixa vídeo do Google Drive
- * @returns {{ localPath, title }}
  */
 async function downloadFromDrive(driveLink, destDir) {
   fs.mkdirSync(destDir, { recursive: true });
@@ -93,7 +113,7 @@ async function downloadFromDrive(driveLink, destDir) {
 
 /** Detecta duração do vídeo com ffprobe */
 async function getVideoDuration(videoPath) {
-  const { stdout } = await execFileAsync('ffprobe', [
+  const { stdout } = await execFileAsync(FFPROBE, [
     '-v', 'quiet', '-print_format', 'json', '-show_format', videoPath,
   ]);
   const data = JSON.parse(stdout);
@@ -102,8 +122,6 @@ async function getVideoDuration(videoPath) {
 
 /**
  * Entry point unificado
- * @param {string} link - YouTube URL ou Drive link
- * @param {string} tipoFonte - 'youtube' | 'drive'
  */
 async function downloadVideo(link, tipoFonte, destDir) {
   if (tipoFonte === 'youtube') return downloadFromYouTube(link, destDir);

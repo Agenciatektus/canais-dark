@@ -78,10 +78,17 @@ async function processarJobDeCorte(job, log) {
     log(`  ✅ ${transcricao.segments.length} segmentos transcritos`);
 
     // ── 3. Contexto ──────────────────────────────────────────────
+    const contextoAutoDetectado = !job.contextoConteudo;
     const contexto = job.contextoConteudo ||
       await detectarContexto(transcricao.fullText, tituloOriginal);
-    log(`  🏷️  Contexto: ${contexto}`);
-    await updateMetadata(job.rowIndex, { tituloOriginal, contexto });
+    log(`  🏷️  Contexto: ${contexto}${contextoAutoDetectado ? ' (auto-detectado)' : ' (manual)'}`);
+    // Só salva de volta se foi auto-detectado — preserva valor preenchido manualmente
+    // Salva nicho sempre (vem do channels.js), contexto só se auto-detectado
+    await updateMetadata(job.rowIndex, {
+      tituloOriginal,
+      contexto:  contextoAutoDetectado ? contexto : undefined,
+      nicho:     channel.nicho,
+    });
 
     // ── 4. Detecção de momentos virais ───────────────────────────
     log(`  🔍 Identificando momentos virais (Claude AI)...`);
@@ -116,16 +123,30 @@ async function processarJobDeCorte(job, log) {
       segments:   transcricao.segments,
       outputDir:  path.join(tmpDir, 'cortes'),
       prefixo,
+      nicho:      channel.nicho,
     });
     log(`  ✅ ${arquivos.length} cortes gerados`);
 
-    // ── 6. Upload → Drive aguardando do canal ────────────────────
-    log(`  ☁️  Enviando para Drive de "${channel.name}"...`);
+    // ── 6. Envia cortes para pasta aguardando do canal ───────────
     const linksDrive = [];
-    for (const arq of arquivos) {
-      const r = await uploadCorteParaDrive(arq, channel);
-      linksDrive.push(r.webViewLink);
-      log(`     📁 ${path.basename(arq)}`);
+    if (channel.driveLocalAguardando) {
+      // Cópia local via Drive Desktop (mais rápido, sem upload)
+      log(`  📂 Copiando para pasta local de "${channel.name}"...`);
+      fs.mkdirSync(channel.driveLocalAguardando, { recursive: true });
+      for (const arq of arquivos) {
+        const dest = path.join(channel.driveLocalAguardando, path.basename(arq));
+        fs.copyFileSync(arq, dest);
+        linksDrive.push(`file://${dest}`);
+        log(`     📁 ${path.basename(arq)}`);
+      }
+    } else {
+      // Upload via Drive API
+      log(`  ☁️  Enviando para Drive de "${channel.name}"...`);
+      for (const arq of arquivos) {
+        const r = await uploadCorteParaDrive(arq, channel);
+        linksDrive.push(r.webViewLink);
+        log(`     📁 ${path.basename(arq)}`);
+      }
     }
 
     // ── 7. Atualiza planilha CORTES ──────────────────────────────
@@ -143,7 +164,7 @@ async function processarJobDeCorte(job, log) {
 }
 
 /** Ciclo principal: busca jobs pendentes e processa */
-async function cicloDeCortess(log) {
+async function cicloDeCortess(log = console.log) {
   log('✂️  Verificando jobs de cortes pendentes...');
   let jobs;
   try {

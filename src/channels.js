@@ -44,6 +44,7 @@ const CHANNELS = {
     oauthPort: 8083,
     driveAguardando: '1iSHA3bMgGFk0TD7a9aJ0Ai2idoTqHilT',
     drivePublicados:  '1zpW0-uPRt2BImBeOBFeiGGEGTAS6qrKU',
+    driveLocalAguardando: 'G:\\Meu Drive\\Tektus Publicidade - Sincronizado\\12 - Automações\\Canais Dark\\Cortes 14 Missão\\aguardando-publicacao-missao',
     nicho: 'político',
     youtubeCategory: '25',  // 25 = News & Politics
   },

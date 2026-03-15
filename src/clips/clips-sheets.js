@@ -114,15 +114,30 @@ async function markAsError(rowIndex, errorMsg) {
   });
 }
 
-/** Atualiza título e contexto descobertos durante processamento */
-async function updateMetadata(rowIndex, { tituloOriginal, contexto }) {
+/** Atualiza título, contexto e nicho descobertos durante processamento */
+async function updateMetadata(rowIndex, { tituloOriginal, contexto, nicho }) {
   const sheets = getSheetsClient();
-  await sheets.spreadsheets.values.update({
+  const requests = [];
+
+  // Coluna B = NICHO (só escreve se fornecido)
+  if (nicho) {
+    requests.push(sheets.spreadsheets.values.update({
+      spreadsheetId: SPREADSHEET_ID,
+      range: `CORTES!B${rowIndex}`,
+      valueInputOption: 'USER_ENTERED',
+      requestBody: { values: [[nicho]] },
+    }));
+  }
+
+  // Colunas E:F = TITULO_ORIGINAL e CONTEXTO_CONTEUDO
+  requests.push(sheets.spreadsheets.values.update({
     spreadsheetId: SPREADSHEET_ID,
     range: `CORTES!E${rowIndex}:F${rowIndex}`,
     valueInputOption: 'USER_ENTERED',
     requestBody: { values: [[tituloOriginal, contexto]] },
-  });
+  }));
+
+  await Promise.all(requests);
 }
 
 module.exports = {

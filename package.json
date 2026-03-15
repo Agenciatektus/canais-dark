@@ -12,7 +12,7 @@
     "test:sheets": "node -e \"require('./src/sheets').getPendingVideos().then(v=>console.log('Pendentes:',v.length,v))\"",
     "auth:missao": "node src/auth/auth_missao.js",
     "test:seo": "node -e \"require('./src/seo').gerarSEO({nomeArquivo:'Jesus-cura-ansiedade.mp4',nomeCanal:'Canal Cristao',nicho:'cristao'}).then(s=>console.log(JSON.stringify(s,null,2)))\"",
-    "test:clips": "node -e \"require('./src/clips/clipper').cicloDeCortess().then(()=>console.log('ciclo concluído'))\""
+    "test:clips": "node src/clips/reset-test.js && node -e \"require('./src/clips/clipper').cicloDeCortess().then(()=>console.log('ciclo concluído'))\""
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.39.0",
