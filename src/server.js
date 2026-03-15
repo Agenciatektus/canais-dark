@@ -166,6 +166,53 @@ const { autorizarCanal } = require('../youtube');
   }
 });
 
+/**
+ * POST /api/fila/adicionar
+ * Body: { youtubeUrl, channelKey }
+ * Baixa vídeo do YouTube via yt-dlp, envia para o Drive (pasta aguardando do canal)
+ * e registra na planilha como Pendente.
+ */
+app.post('/api/fila/adicionar', async (req, res) => {
+  req.setTimeout(300000); // 5 minutos para download + upload
+  const { youtubeUrl, channelKey } = req.body;
+  if (!youtubeUrl || !channelKey) {
+    return res.status(400).json({ error: 'Campos obrigatórios: youtubeUrl, channelKey' });
+  }
+  try {
+    const { getChannel } = require('./channels');
+    const { downloadFromYouTube } = require('./clips/downloader');
+    const { uploadFileToDrive } = require('./drive');
+    const { registrarVideosEmLote } = require('./sheets');
+    const fs   = require('fs');
+    const path = require('path');
+
+    const channel  = getChannel(channelKey);
+    const TEMP_DIR = process.env.TEMP_DIR || '/tmp/canais-dark';
+
+    // 1. Download via yt-dlp
+    const { localPath, title } = await downloadFromYouTube(youtubeUrl, TEMP_DIR);
+    const nomeArquivo = path.basename(localPath);
+
+    // 2. Upload para pasta "aguardando" do canal no Drive
+    const { webViewLink } = await uploadFileToDrive(localPath, nomeArquivo, channel.driveAguardando);
+
+    // 3. Registrar na planilha como Pendente
+    await registrarVideosEmLote([{
+      canal: channel.name,
+      nicho: channel.nicho,
+      nomeArquivo,
+      linkDriveAguardando: webViewLink,
+    }]);
+
+    // 4. Limpar arquivo temporário
+    fs.unlink(localPath, () => {});
+
+    res.json({ success: true, title, nomeArquivo });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 function startServer() {
   app.listen(PORT, () => {
     console.log(`[Server] Canais Dark rodando em http://localhost:${PORT}`);

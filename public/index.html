@@ -422,6 +422,19 @@
       </div>
     </div>
 
+    <!-- Adicionar à Fila -->
+    <div class="sidebar-section">
+      <div class="sidebar-section-title">Adicionar à Fila</div>
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        <input id="fila-url" type="url" placeholder="URL do YouTube..." style="background:#1e293b;border:1px solid #334155;color:#e2e8f0;border-radius:6px;padding:8px 10px;font-size:0.82rem;width:100%;box-sizing:border-box;" />
+        <select id="fila-canal" style="background:#1e293b;border:1px solid #334155;color:#e2e8f0;border-radius:6px;padding:8px 10px;font-size:0.82rem;width:100%;box-sizing:border-box;">
+          <option value="">Selecionar canal...</option>
+        </select>
+        <button class="btn-full btn-primary" onclick="adicionarVideoNaFila()">⬇️ Baixar e Enfileirar</button>
+        <div id="fila-status" style="font-size:0.78rem;min-height:20px;"></div>
+      </div>
+    </div>
+
     <!-- Ações Rápidas -->
     <div class="sidebar-section">
       <div class="sidebar-section-title">Ações Rápidas</div>
@@ -555,6 +568,13 @@
           <div class="token-badge ${statusClass}" title="${statusTip}"></div>
         </div>`;
       }).join('');
+
+      // Popula dropdown "Adicionar à Fila"
+      const sel = document.getElementById('fila-canal');
+      const current = sel.value;
+      sel.innerHTML = '<option value="">Selecionar canal...</option>' +
+        data.canais.map(c => `<option value="${c.key}">${c.name}</option>`).join('');
+      if (current) sel.value = current;
     } catch (e) {
       el.innerHTML = `<div style="color:#f87171;font-size:0.8rem;">Erro: ${e.message}</div>`;
     }
@@ -674,6 +694,38 @@
 
   function escapeHtml(str) {
     return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  // ── Adicionar à Fila ───────────────────────────────────────────────────────
+
+  async function adicionarVideoNaFila() {
+    const url       = document.getElementById('fila-url').value.trim();
+    const channelKey = document.getElementById('fila-canal').value;
+    const statusEl  = document.getElementById('fila-status');
+
+    if (!url)        { statusEl.innerHTML = '<span style="color:#f87171;">Informe a URL do vídeo.</span>'; return; }
+    if (!channelKey) { statusEl.innerHTML = '<span style="color:#f87171;">Selecione um canal.</span>'; return; }
+
+    statusEl.innerHTML = '<span style="color:#94a3b8;">⏳ Baixando e enviando para o Drive...</span>';
+    document.querySelector('#fila-status').closest('.sidebar-section').querySelectorAll('button').forEach(b => b.disabled = true);
+
+    try {
+      const r = await fetch('/api/fila/adicionar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ youtubeUrl: url, channelKey }),
+      });
+      const data = await r.json();
+      if (!data.success) throw new Error(data.error);
+
+      statusEl.innerHTML = `<span style="color:#4ade80;">✅ Adicionado: ${escapeHtml(data.title)}</span>`;
+      document.getElementById('fila-url').value = '';
+      carregarDados();
+    } catch (e) {
+      statusEl.innerHTML = `<span style="color:#f87171;">❌ ${escapeHtml(e.message)}</span>`;
+    } finally {
+      document.querySelector('#fila-status').closest('.sidebar-section').querySelectorAll('button').forEach(b => b.disabled = false);
+    }
   }
 
   // ── Init ───────────────────────────────────────────────────────────────────

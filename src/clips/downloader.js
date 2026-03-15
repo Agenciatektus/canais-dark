@@ -127,4 +127,4 @@ async function downloadVideo(link, tipoFonte, destDir) {
   return downloadFromDrive(link, destDir);
 }
 
-module.exports = { downloadVideo, getVideoDuration };
+module.exports = { downloadVideo, downloadFromYouTube, getVideoDuration };

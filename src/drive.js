@@ -124,4 +124,23 @@ function extrairFileId(link) {
   return null;
 }
 
-module.exports = { listVideosForChannel, downloadVideo, renameFile, moveToPublished, getFileLink, extrairFileId };
+/**
+ * Faz upload de um arquivo local para uma pasta do Drive
+ * @param {string} localPath - caminho absoluto do arquivo
+ * @param {string} fileName - nome que terá no Drive
+ * @param {string} folderId - ID da pasta de destino
+ * @returns {Promise<{id, webViewLink}>}
+ */
+async function uploadFileToDrive(localPath, fileName, folderId) {
+  const drive = getDriveClient();
+  const fileStream = fs.createReadStream(localPath);
+  const res = await drive.files.create({
+    requestBody: { name: fileName, parents: [folderId] },
+    media: { mimeType: 'video/mp4', body: fileStream },
+    fields: 'id,webViewLink',
+    supportsAllDrives: true,
+  });
+  return res.data;
+}
+
+module.exports = { listVideosForChannel, downloadVideo, renameFile, moveToPublished, getFileLink, extrairFileId, uploadFileToDrive };
