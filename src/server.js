@@ -213,6 +213,55 @@ app.post('/api/fila/adicionar', async (req, res) => {
   }
 });
 
+/**
+ * GET /api/referencia
+ * Lista todos os canais de referência configurados
+ */
+app.get('/api/referencia', async (req, res) => {
+  try {
+    const { getCanaisReferencia } = require('./sheets');
+    const referencias = await getCanaisReferencia();
+    res.json({ success: true, referencias });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/**
+ * POST /api/referencia
+ * Body: { channelKey, urlReferencia }
+ * Adiciona um canal de referência associado a um canal de corte
+ */
+app.post('/api/referencia', async (req, res) => {
+  const { channelKey, urlReferencia } = req.body;
+  if (!channelKey || !urlReferencia) {
+    return res.status(400).json({ error: 'Campos obrigatórios: channelKey, urlReferencia' });
+  }
+  try {
+    const { getChannel } = require('./channels');
+    const { adicionarCanalReferencia } = require('./sheets');
+    const channel = getChannel(channelKey);
+    await adicionarCanalReferencia(channelKey, channel.name, urlReferencia);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/**
+ * DELETE /api/referencia/:rowIndex
+ * Remove um canal de referência pelo rowIndex da planilha
+ */
+app.delete('/api/referencia/:rowIndex', async (req, res) => {
+  try {
+    const { removerCanalReferencia } = require('./sheets');
+    await removerCanalReferencia(parseInt(req.params.rowIndex, 10));
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 function startServer() {
   app.listen(PORT, () => {
     console.log(`[Server] Canais Dark rodando em http://localhost:${PORT}`);

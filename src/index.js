@@ -10,6 +10,7 @@ const { listVideosForChannel, downloadVideo, renameFile, moveToPublished, getFil
 const { getNomesRegistrados, registrarVideosEmLote, getPendingVideos, salvarSEO, markAsPublished, markAsError } = require('./sheets');
 const { gerarSEO } = require('./seo');
 const { uploadShort } = require('./youtube');
+const { cicloReferencia } = require('./referencia');
 
 
 const TEMP_DIR = path.join(os.tmpdir(), 'canais-dark');
@@ -206,6 +207,12 @@ for (const { hora, minuto } of HORARIOS_PUBLICACAO) {
   cron.schedule(`${minuto} ${hora} * * *`, cicloPublicacao, { timezone: 'America/Sao_Paulo' });
   log(`⏰ Publicação agendada: ${String(hora).padStart(2,'0')}:${String(minuto).padStart(2,'0')} (Brasília)`);
 }
+
+// Monitoramento de canais de referência — a cada 4 horas
+cron.schedule('0 */4 * * *', async () => {
+  try { await cicloReferencia(); } catch (err) { log(`❌ Erro no ciclo de referências: ${err.message}`); }
+}, { timezone: 'America/Sao_Paulo' });
+log('🔗 Monitoramento de referências agendado: a cada 4 horas');
 
 // Pipeline de cortes — desativado temporariamente
 // cron.schedule('*/15 * * * *', cicloDeCortess, { timezone: 'America/Sao_Paulo' });

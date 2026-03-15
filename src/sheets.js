@@ -203,6 +203,99 @@ async function getAllVideos() {
     }));
 }
 
+// ── REFERENCIAS sheet ──────────────────────────────────────────────────────
+
+/**
+ * Garante que a aba REFERENCIAS existe na planilha.
+ * Cria com cabeçalho caso não exista.
+ */
+async function ensureReferenciaSheet() {
+  const sheets = getSheetsClient();
+  try {
+    await sheets.spreadsheets.values.get({
+      spreadsheetId: SPREADSHEET_ID,
+      range: 'REFERENCIAS!A1',
+    });
+  } catch {
+    await sheets.spreadsheets.batchUpdate({
+      spreadsheetId: SPREADSHEET_ID,
+      requestBody: { requests: [{ addSheet: { properties: { title: 'REFERENCIAS' } } }] },
+    });
+    await sheets.spreadsheets.values.update({
+      spreadsheetId: SPREADSHEET_ID,
+      range: 'REFERENCIAS!A1:D1',
+      valueInputOption: 'USER_ENTERED',
+      requestBody: { values: [['CANAL_KEY', 'CANAL_NOME', 'URL_REFERENCIA', 'DATA_ADICAO']] },
+    });
+  }
+}
+
+/**
+ * Retorna todos os canais de referência configurados
+ * @returns {Promise<Array<{rowIndex, channelKey, channelName, urlReferencia, dataAdicao}>>}
+ */
+async function getCanaisReferencia() {
+  const sheets = getSheetsClient();
+  try {
+    const res = await sheets.spreadsheets.values.get({
+      spreadsheetId: SPREADSHEET_ID,
+      range: 'REFERENCIAS!A2:D5000',
+    });
+    return (res.data.values || [])
+      .map((row, i) => ({
+        rowIndex:     i + 2,
+        channelKey:   row[0] || '',
+        channelName:  row[1] || '',
+        urlReferencia: row[2] || '',
+        dataAdicao:   row[3] || '',
+      }))
+      .filter(r => r.channelKey && r.urlReferencia);
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Adiciona um canal de referência à aba REFERENCIAS
+ */
+async function adicionarCanalReferencia(channelKey, channelName, urlReferencia) {
+  await ensureReferenciaSheet();
+  const sheets = getSheetsClient();
+  await sheets.spreadsheets.values.append({
+    spreadsheetId: SPREADSHEET_ID,
+    range: 'REFERENCIAS!A:D',
+    valueInputOption: 'USER_ENTERED',
+    insertDataOption: 'INSERT_ROWS',
+    requestBody: { values: [[channelKey, channelName, urlReferencia, agora()]] },
+  });
+}
+
+/**
+ * Remove um canal de referência pelo número da linha
+ * @param {number} rowIndex - número da linha (1-indexed, igual ao retornado por getCanaisReferencia)
+ */
+async function removerCanalReferencia(rowIndex) {
+  const sheets = getSheetsClient();
+  const spreadsheet = await sheets.spreadsheets.get({ spreadsheetId: SPREADSHEET_ID });
+  const sheet = spreadsheet.data.sheets.find(s => s.properties.title === 'REFERENCIAS');
+  if (!sheet) return;
+  await sheets.spreadsheets.batchUpdate({
+    spreadsheetId: SPREADSHEET_ID,
+    requestBody: {
+      requests: [{
+        deleteDimension: {
+          range: {
+            sheetId: sheet.properties.sheetId,
+            dimension: 'ROWS',
+            startIndex: rowIndex - 1, // API usa 0-indexed
+            endIndex: rowIndex,
+          },
+        },
+      }],
+    },
+  });
+}
+
 module.exports = {
   getNomesRegistrados,
   registrarVideosEmLote,
@@ -211,4 +304,7 @@ module.exports = {
   salvarSEO,
   markAsPublished,
   markAsError,
+  getCanaisReferencia,
+  adicionarCanalReferencia,
+  removerCanalReferencia,
 };

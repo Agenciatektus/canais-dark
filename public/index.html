@@ -435,6 +435,25 @@
       </div>
     </div>
 
+    <!-- Canais de Referência -->
+    <div class="sidebar-section">
+      <div class="sidebar-section-title">
+        <span>Canais de Referência</span>
+        <button class="btn-secondary" style="padding:3px 10px;font-size:0.72rem;" onclick="carregarReferencias()">↻</button>
+      </div>
+      <div id="refs-list" style="margin-bottom:10px;">
+        <div style="color:#475569;font-size:0.8rem;">Carregando...</div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:6px;">
+        <select id="ref-canal" style="background:#1e293b;border:1px solid #334155;color:#e2e8f0;border-radius:6px;padding:7px 10px;font-size:0.8rem;width:100%;box-sizing:border-box;">
+          <option value="">Canal destino...</option>
+        </select>
+        <input id="ref-url" type="url" placeholder="URL do canal (ex: @kimkataguiri)" style="background:#1e293b;border:1px solid #334155;color:#e2e8f0;border-radius:6px;padding:7px 10px;font-size:0.8rem;width:100%;box-sizing:border-box;" />
+        <button class="btn-full btn-primary" style="font-size:0.8rem;" onclick="adicionarReferencia()">+ Adicionar</button>
+        <div id="ref-status" style="font-size:0.75rem;min-height:16px;"></div>
+      </div>
+    </div>
+
     <!-- Ações Rápidas -->
     <div class="sidebar-section">
       <div class="sidebar-section-title">Ações Rápidas</div>
@@ -569,12 +588,14 @@
         </div>`;
       }).join('');
 
-      // Popula dropdown "Adicionar à Fila"
-      const sel = document.getElementById('fila-canal');
-      const current = sel.value;
-      sel.innerHTML = '<option value="">Selecionar canal...</option>' +
-        data.canais.map(c => `<option value="${c.key}">${c.name}</option>`).join('');
-      if (current) sel.value = current;
+      // Popula dropdowns que dependem da lista de canais
+      ['fila-canal', 'ref-canal'].forEach(id => {
+        const sel = document.getElementById(id);
+        const current = sel.value;
+        sel.innerHTML = (id === 'fila-canal' ? '<option value="">Selecionar canal...</option>' : '<option value="">Canal destino...</option>') +
+          data.canais.map(c => `<option value="${c.key}">${c.name}</option>`).join('');
+        if (current) sel.value = current;
+      });
     } catch (e) {
       el.innerHTML = `<div style="color:#f87171;font-size:0.8rem;">Erro: ${e.message}</div>`;
     }
@@ -696,6 +717,74 @@
     return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   }
 
+  // ── Canais de Referência ───────────────────────────────────────────────────
+
+  async function carregarReferencias() {
+    const el = document.getElementById('refs-list');
+    el.innerHTML = '<div style="color:#475569;font-size:0.8rem;">Carregando...</div>';
+    try {
+      const r = await fetch('/api/referencia');
+      const data = await r.json();
+      if (!data.success) throw new Error(data.error);
+      if (data.referencias.length === 0) {
+        el.innerHTML = '<div style="color:#475569;font-size:0.78rem;">Nenhum canal configurado.</div>';
+        return;
+      }
+      // Agrupa por canal destino
+      const grupos = {};
+      for (const ref of data.referencias) {
+        if (!grupos[ref.channelName]) grupos[ref.channelName] = [];
+        grupos[ref.channelName].push(ref);
+      }
+      el.innerHTML = Object.entries(grupos).map(([name, refs]) => `
+        <div style="margin-bottom:8px;">
+          <div style="font-size:0.75rem;font-weight:700;color:#94a3b8;margin-bottom:4px;">${escapeHtml(name)}</div>
+          ${refs.map(ref => `
+            <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px;">
+              <span style="font-size:0.78rem;color:#cbd5e1;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${escapeHtml(ref.urlReferencia)}">↳ ${escapeHtml(ref.urlReferencia)}</span>
+              <button onclick="removerReferencia(${ref.rowIndex})" style="background:none;border:none;color:#f87171;cursor:pointer;font-size:0.85rem;padding:0 2px;" title="Remover">×</button>
+            </div>`).join('')}
+        </div>`).join('');
+    } catch (e) {
+      el.innerHTML = `<div style="color:#f87171;font-size:0.78rem;">Erro: ${escapeHtml(e.message)}</div>`;
+    }
+  }
+
+  async function adicionarReferencia() {
+    const channelKey = document.getElementById('ref-canal').value;
+    const url        = document.getElementById('ref-url').value.trim();
+    const statusEl   = document.getElementById('ref-status');
+    if (!channelKey) { statusEl.innerHTML = '<span style="color:#f87171;">Selecione um canal.</span>'; return; }
+    if (!url)        { statusEl.innerHTML = '<span style="color:#f87171;">Informe a URL do canal.</span>'; return; }
+    statusEl.innerHTML = '<span style="color:#94a3b8;">Salvando...</span>';
+    try {
+      const r = await fetch('/api/referencia', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ channelKey, urlReferencia: url }),
+      });
+      const data = await r.json();
+      if (!data.success) throw new Error(data.error);
+      document.getElementById('ref-url').value = '';
+      statusEl.innerHTML = '<span style="color:#4ade80;">✅ Adicionado!</span>';
+      carregarReferencias();
+    } catch (e) {
+      statusEl.innerHTML = `<span style="color:#f87171;">❌ ${escapeHtml(e.message)}</span>`;
+    }
+  }
+
+  async function removerReferencia(rowIndex) {
+    if (!confirm('Remover este canal de referência?')) return;
+    try {
+      const r = await fetch(`/api/referencia/${rowIndex}`, { method: 'DELETE' });
+      const data = await r.json();
+      if (!data.success) throw new Error(data.error);
+      carregarReferencias();
+    } catch (e) {
+      alert('Erro ao remover: ' + e.message);
+    }
+  }
+
   // ── Adicionar à Fila ───────────────────────────────────────────────────────
 
   async function adicionarVideoNaFila() {
@@ -731,6 +820,7 @@
   // ── Init ───────────────────────────────────────────────────────────────────
   carregarDados();
   carregarCanais();
+  carregarReferencias();
   setInterval(carregarDados, 60000);
 </script>
 
