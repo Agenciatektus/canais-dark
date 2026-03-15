@@ -15,14 +15,13 @@ const {
 const { CHANNELS } = require('../channels');
 
 const TEMP_BASE       = path.join(os.tmpdir(), 'canais-dark-clips');
-const CREDENTIALS_PATH = path.join(__dirname, '..', '..', 'credenciais', 'google_credentials.json');
+const { getCredentials } = require('../auth/get-credentials');
 
 function getDriveClient() {
-  const raw  = JSON.parse(fs.readFileSync(CREDENTIALS_PATH, 'utf8'));
-  const creds = raw.web || raw.installed;
+  const creds = getCredentials();
   const auth  = new google.auth.OAuth2(
-    process.env.GOOGLE_CLIENT_ID  || creds.client_id,
-    process.env.GOOGLE_CLIENT_SECRET || creds.client_secret,
+    creds.client_id,
+    creds.client_secret,
     'http://localhost:8080/callback'
   );
   auth.setCredentials({ refresh_token: process.env.DRIVE_REFRESH_TOKEN });

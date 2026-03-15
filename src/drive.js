@@ -3,17 +3,16 @@ const { google } = require('googleapis');
 const fs = require('fs');
 const path = require('path');
 
-const CREDENTIALS_PATH = path.join(__dirname, '..', 'credenciais', 'google_credentials.json');
+const { getCredentials } = require('./auth/get-credentials');
 
 /**
  * Retorna cliente OAuth2 autenticado como agenciatektus@gmail.com (dona dos arquivos no Drive)
  */
 function getDriveClient() {
-  const raw = JSON.parse(fs.readFileSync(CREDENTIALS_PATH, 'utf8'));
-  const creds = raw.web || raw.installed;
+  const creds = getCredentials();
   const oauth2Client = new google.auth.OAuth2(
-    process.env.GOOGLE_CLIENT_ID || creds.client_id,
-    process.env.GOOGLE_CLIENT_SECRET || creds.client_secret,
+    creds.client_id,
+    creds.client_secret,
     'http://localhost:8080/callback'
   );
   oauth2Client.setCredentials({ refresh_token: process.env.DRIVE_REFRESH_TOKEN });

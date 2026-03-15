@@ -7,16 +7,15 @@ const path = require('path');
 const { extrairFileId } = require('../drive');
 
 const execFileAsync = promisify(execFile);
-const CREDENTIALS_PATH = path.join(__dirname, '..', '..', 'credenciais', 'google_credentials.json');
+const { getCredentials } = require('../auth/get-credentials');
 const YTDLP  = process.env.YTDLP_PATH  || 'yt-dlp';
 const FFPROBE = process.env.FFPROBE_PATH || 'ffprobe';
 
 function getDriveClient() {
-  const raw = JSON.parse(fs.readFileSync(CREDENTIALS_PATH, 'utf8'));
-  const creds = raw.web || raw.installed;
+  const creds = getCredentials();
   const oauth2Client = new google.auth.OAuth2(
-    process.env.GOOGLE_CLIENT_ID || creds.client_id,
-    process.env.GOOGLE_CLIENT_SECRET || creds.client_secret,
+    creds.client_id,
+    creds.client_secret,
     'http://localhost:8080/callback'
   );
   oauth2Client.setCredentials({ refresh_token: process.env.DRIVE_REFRESH_TOKEN });

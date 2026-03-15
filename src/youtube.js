@@ -5,23 +5,12 @@ const path = require('path');
 const http = require('http');
 const url = require('url');
 
-const CREDENTIALS_PATH = path.join(__dirname, '..', 'credenciais', 'google_credentials.json');
+const { getCredentials } = require('./auth/get-credentials');
 
 const SCOPES = [
   'https://www.googleapis.com/auth/youtube.upload',
   'https://www.googleapis.com/auth/youtube',
 ];
-
-function loadCredentials() {
-  if (!fs.existsSync(CREDENTIALS_PATH)) {
-    throw new Error(
-      `Credenciais OAuth não encontradas em ${CREDENTIALS_PATH}.\n` +
-      'Baixe o arquivo JSON do Google Cloud Console → Credenciais → OAuth 2.0'
-    );
-  }
-  const raw = JSON.parse(fs.readFileSync(CREDENTIALS_PATH, 'utf8'));
-  return raw.web || raw.installed;
-}
 
 /**
  * Retorna cliente OAuth2 autenticado para um canal específico
@@ -30,7 +19,7 @@ function loadCredentials() {
  * @returns {google.auth.OAuth2}
  */
 function getClientForChannel(channel) {
-  const creds = loadCredentials();
+  const creds = getCredentials();
   const redirectUri = `http://localhost:${channel.oauthPort}/callback`;
   const oauth2Client = new google.auth.OAuth2(
     process.env.GOOGLE_CLIENT_ID || creds.client_id,
