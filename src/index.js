@@ -10,7 +10,7 @@ const { listVideosForChannel, downloadVideo, renameFile, moveToPublished, getFil
 const { getNomesRegistrados, registrarVideosEmLote, getPendingVideos, salvarSEO, markAsPublished, markAsError } = require('./sheets');
 const { gerarSEO } = require('./seo');
 const { uploadShort } = require('./youtube');
-const { cicloDeCortess } = require('./clips/clipper');
+
 
 const TEMP_DIR = path.join(os.tmpdir(), 'canais-dark');
 const LOG_FILE = path.join(__dirname, '..', 'logs', 'app.log');
@@ -207,9 +207,9 @@ for (const { hora, minuto } of HORARIOS_PUBLICACAO) {
   log(`⏰ Publicação agendada: ${String(hora).padStart(2,'0')}:${String(minuto).padStart(2,'0')} (Brasília)`);
 }
 
-// Pipeline de cortes a cada 15 minutos
-cron.schedule('*/15 * * * *', cicloDeCortess, { timezone: 'America/Sao_Paulo' });
-log('✂️  Pipeline de cortes agendado: a cada 15 minutos');
+// Pipeline de cortes — desativado temporariamente
+// cron.schedule('*/15 * * * *', cicloDeCortess, { timezone: 'America/Sao_Paulo' });
+// log('✂️  Pipeline de cortes agendado: a cada 15 minutos');
 
 // Detecção imediata ao iniciar
 cicloDeteccao();
