@@ -179,10 +179,35 @@ async function markAsError(rowIndex, errorMsg) {
   });
 }
 
+/**
+ * Retorna todos os vídeos da planilha (todos os status) para o dashboard.
+ */
+async function getAllVideos() {
+  const sheets = getSheetsClient();
+  const res = await sheets.spreadsheets.values.get({
+    spreadsheetId: SPREADSHEET_ID,
+    range: 'POSTAGENS!A2:N5000',
+  });
+  const rows = res.data.values || [];
+  return rows
+    .filter(row => row[COL.NOME_ARQUIVO] || row[COL.TITULO_YOUTUBE])
+    .map((row, i) => ({
+      rowIndex:      i + 2,
+      canal:         row[COL.CANAL]                  || '',
+      nicho:         row[COL.NICHO]                  || '',
+      nomeArquivo:   row[COL.NOME_ARQUIVO]            || '',
+      tituloYoutube: row[COL.TITULO_YOUTUBE]          || '',
+      status:        row[COL.STATUS]                  || 'Pendente',
+      linkYoutube:   row[COL.LINK_YOUTUBE]            || '',
+      dataDeteccao:  row[COL.DATA_DETECCAO]           || '',
+    }));
+}
+
 module.exports = {
   getNomesRegistrados,
   registrarVideosEmLote,
   getPendingVideos,
+  getAllVideos,
   salvarSEO,
   markAsPublished,
   markAsError,

@@ -14,9 +14,12 @@ app.use(express.static(path.join(__dirname, '..', 'public')));
  */
 app.get('/api/status', async (req, res) => {
   try {
-    const { getPendingVideos } = require('./sheets');
-    const pending = await getPendingVideos();
-    res.json({ success: true, pendentes: pending.length, videos: pending });
+    const { getAllVideos } = require('./sheets');
+    const videos   = await getAllVideos();
+    const pendentes = videos.filter(v => v.status.toLowerCase() === 'pendente').length;
+    const postados  = videos.filter(v => v.status.toLowerCase() === 'postado').length;
+    const erros     = videos.filter(v => v.status.toLowerCase() === 'erro').length;
+    res.json({ success: true, pendentes, postados, erros, videos });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
