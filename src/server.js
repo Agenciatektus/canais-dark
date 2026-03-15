@@ -193,10 +193,16 @@ app.post('/api/fila/adicionar', async (req, res) => {
     const { localPath, title } = await downloadFromYouTube(youtubeUrl, TEMP_DIR);
     const nomeArquivo = path.basename(localPath);
 
-    // 2. Upload para pasta "aguardando" do canal no Drive
+    // 2. Aplica transformações visuais do canal (se configuradas)
+    if (channel.transformacoes) {
+      const { aplicarTransformacoes } = require('./transformer');
+      await aplicarTransformacoes(localPath, channel.transformacoes);
+    }
+
+    // 3. Upload para pasta "aguardando" do canal no Drive
     const { webViewLink } = await uploadFileToDrive(localPath, nomeArquivo, channel.driveAguardando);
 
-    // 3. Registrar na planilha como Pendente
+    // 4. Registrar na planilha como Pendente
     await registrarVideosEmLote([{
       canal: channel.name,
       nicho: channel.nicho,
@@ -204,7 +210,7 @@ app.post('/api/fila/adicionar', async (req, res) => {
       linkDriveAguardando: webViewLink,
     }]);
 
-    // 4. Limpar arquivo temporário
+    // 5. Limpar arquivo temporário
     fs.unlink(localPath, () => {});
 
     res.json({ success: true, title, nomeArquivo });

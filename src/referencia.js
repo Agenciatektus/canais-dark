@@ -9,9 +9,10 @@ const execFileAsync = promisify(execFile);
 const YTDLP    = process.env.YTDLP_PATH  || 'yt-dlp';
 const TEMP_DIR = process.env.TEMP_DIR    || path.join(os.tmpdir(), 'canais-dark');
 
-const { CHANNELS }             = require('./channels');
-const { downloadFromYouTube }  = require('./clips/downloader');
-const { uploadFileToDrive }    = require('./drive');
+const { CHANNELS }                = require('./channels');
+const { downloadFromYouTube }     = require('./clips/downloader');
+const { uploadFileToDrive }       = require('./drive');
+const { aplicarTransformacoes }   = require('./transformer');
 const { getCanaisReferencia, getNomesRegistrados, registrarVideosEmLote } = require('./sheets');
 
 function log(msg) {
@@ -91,6 +92,10 @@ async function cicloReferencia() {
       log(`   ⬇️  Baixando: ${video.title}`);
       try {
         const { localPath } = await downloadFromYouTube(video.url, TEMP_DIR);
+        if (channel.transformacoes) {
+          log(`   🎨 Aplicando transformações visuais...`);
+          await aplicarTransformacoes(localPath, channel.transformacoes);
+        }
         const { webViewLink } = await uploadFileToDrive(localPath, nomeArquivo, channel.driveAguardando);
         await registrarVideosEmLote([{
           canal: channel.name,

@@ -19,6 +19,11 @@ const CHANNELS = {
     drivePublicados:  '1Y1CZfRvcjUAKQe7PX-_zS6KwVhlv_y_X',
     nicho: 'cristão',
     youtubeCategory: '22',
+    transformacoes: {
+      colorGrade: { saturacao: 1.2, contraste: 1.05, brilho: 0.02 },
+      vignette: false,
+      watermark: { texto: '@Corintios19', posicao: 'bottom-right', tamanho: 30, opacidade: 0.75 },
+    },
   },
 
   'frutas-sinceronas': {
@@ -32,6 +37,11 @@ const CHANNELS = {
     drivePublicados:  '1s6LaVPSdxBwmj50c5ndsD8PMOF5KxO2x',
     nicho: 'frutas',
     youtubeCategory: '22',
+    transformacoes: {
+      colorGrade: { saturacao: 1.4, contraste: 1.1, brilho: 0.0 },
+      vignette: false,
+      watermark: { texto: '@frutas.sinceronas', posicao: 'bottom-right', tamanho: 30, opacidade: 0.75 },
+    },
   },
 
   // ── CANAL POLÍTICO — PARTIDO MISSÃO ─────────────────────────────
@@ -47,6 +57,12 @@ const CHANNELS = {
     driveLocalAguardando: 'G:\\Meu Drive\\Tektus Publicidade - Sincronizado\\12 - Automações\\Canais Dark\\Cortes 14 Missão\\aguardando-publicacao-missao',
     nicho: 'político',
     youtubeCategory: '25',  // 25 = News & Politics
+    transformacoes: {
+      colorGrade: { saturacao: 1.35, contraste: 1.15, brilho: -0.02 },
+      vignette: true,
+      grain: true,   // granulação de cinema sutil (intensidade 8)
+      watermark: { texto: '@cortes14missao', posicao: 'bottom-right', tamanho: 32, opacidade: 0.8 },
+    },
   },
 };
 

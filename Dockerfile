@@ -5,6 +5,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ffmpeg \
     python3 \
     python3-pip \
+    fonts-dejavu-core \
     && rm -rf /var/lib/apt/lists/*
 
 # Instala yt-dlp via pip (método oficial)
