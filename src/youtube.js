@@ -182,4 +182,23 @@ async function atualizarMetadados(channel, videoId, metadata) {
   });
 }
 
-module.exports = { uploadShort, autorizarCanal, getClientForChannel, atualizarMetadados };
+/**
+ * Verifica se o refresh token de um canal ainda é válido.
+ * Faz uma chamada leve (channels.list) e retorna 'valid', 'invalid' ou 'missing'.
+ * @param {object} channel
+ * @returns {Promise<'valid'|'invalid'|'missing'>}
+ */
+async function verificarTokenCanal(channel) {
+  const refreshToken = process.env[channel.refreshTokenEnv];
+  if (!refreshToken) return 'missing';
+  try {
+    const auth = getClientForChannel(channel);
+    const youtube = google.youtube({ version: 'v3', auth });
+    await youtube.channels.list({ part: ['id'], mine: true, maxResults: 1 });
+    return 'valid';
+  } catch {
+    return 'invalid';
+  }
+}
+
+module.exports = { uploadShort, autorizarCanal, getClientForChannel, atualizarMetadados, verificarTokenCanal };
