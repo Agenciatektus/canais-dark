@@ -9,9 +9,6 @@ const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
 /**
  * Extrai N frames de um vídeo usando ffmpeg e retorna como base64
- * @param {string} videoPath - caminho local do vídeo
- * @param {number} count - quantidade de frames (default 3)
- * @returns {Promise<string[]>} array de imagens em base64 (jpeg)
  */
 async function extrairFrames(videoPath, count = 3) {
   const tmpDir = path.join(os.tmpdir(), 'canais-dark-frames');
@@ -20,14 +17,13 @@ async function extrairFrames(videoPath, count = 3) {
   const frames = [];
   for (let i = 1; i <= count; i++) {
     const outPath = path.join(tmpDir, `frame_${Date.now()}_${i}.jpg`);
-    // Extrai frame em i/(count+1) do vídeo (ex: 25%, 50%, 75%)
     const ratio = i / (count + 1);
     await new Promise((resolve, reject) => {
       execFile('ffmpeg', [
-        '-ss', `${ratio}`,         // posição relativa (ffmpeg aceita porcentagem com -ss + -t)
+        '-ss', `${ratio}`,
         '-i', videoPath,
         '-vframes', '1',
-        '-vf', 'scale=640:-1',    // reduz para 640px de largura (menor payload)
+        '-vf', 'scale=640:-1',
         '-q:v', '3',
         '-y', outPath,
       ], (err) => err ? reject(err) : resolve());
@@ -41,11 +37,8 @@ async function extrairFrames(videoPath, count = 3) {
 }
 
 /**
- * Analisa os frames do vídeo com Claude Vision e descreve o conteúdo
- * @param {string[]} framesBase64 - frames em base64
- * @param {string} nomeCanal
- * @param {string} nicho
- * @returns {Promise<string>} descrição do conteúdo
+ * Analisa os frames do vídeo com Claude Vision e descreve o conteúdo.
+ * Ignora explicitamente watermarks e nomes de canais visíveis.
  */
 async function analisarConteudo(framesBase64, nomeCanal, nicho) {
   const content = [
@@ -72,18 +65,12 @@ Seja objetivo e direto. Máximo 3 linhas.`,
 }
 
 /**
- * Gera SEO com base no conteúdo real do vídeo (frames analisados pelo Claude Vision)
- * @param {object} params
- * @param {string} params.videoPath - caminho local do vídeo (para extrair frames)
- * @param {string} params.nomeArquivo - nome do arquivo (fallback)
- * @param {string} params.nomeCanal
- * @param {string} params.nicho
- * @returns {Promise<{titulo: string, descricao: string, tags: string[]}>}
+ * Gera SEO com base no conteúdo real do vídeo (frames analisados pelo Claude Vision).
+ * Quando videoPath é null/inexistente, gera SEO genérico do nicho sem alucinar nomes.
  */
 async function gerarSEO({ videoPath, nomeArquivo, nomeCanal, nicho }) {
   let descricaoConteudo = '';
 
-  // Tenta analisar frames se tiver o vídeo disponível
   if (videoPath && fs.existsSync(videoPath)) {
     try {
       const frames = await extrairFrames(videoPath, 3);
@@ -91,19 +78,21 @@ async function gerarSEO({ videoPath, nomeArquivo, nomeCanal, nicho }) {
         descricaoConteudo = await analisarConteudo(frames, nomeCanal, nicho);
       }
     } catch (err) {
-      console.warn(`[SEO] Falha ao analisar frames: ${err.message}. Usando nome do arquivo.`);
+      console.warn(`[SEO] Falha ao analisar frames: ${err.message}. Usando contexto genérico.`);
     }
   }
-
-  const contexto = descricaoConteudo
-    ? `Conteúdo real do vídeo (analisado por visão computacional):\n"${descricaoConteudo}"`
-    : `Nome do arquivo: "${nomeArquivo.replace(/\.[^.]+$/, '').replace(/[-_]/g, ' ')}"`;
 
   const tom = nicho === 'cristão'
     ? 'espiritual, edificante'
     : nicho === 'frutas'
       ? 'informativo, curioso'
       : 'engajante';
+
+  // Quando não há arquivo local, usa contexto genérico do nicho.
+  // NÃO passa o videoId como "nome" — causaria alucinações.
+  const contexto = descricaoConteudo
+    ? `Conteúdo real do vídeo (analisado por visão computacional):\n"${descricaoConteudo}"`
+    : `Contexto: vídeo de nicho "${nicho}" publicado pelo canal "${nomeCanal}". Sem descrição específica disponível — gere título e descrição genéricos e relevantes para este nicho.`;
 
   const prompt = `Você é especialista em SEO para YouTube no Brasil.
 
@@ -112,9 +101,9 @@ ${contexto}
 
 Gere o SEO para este YouTube Short em português brasileiro.
 REGRAS OBRIGATÓRIAS:
-- O canal publicador é "${nomeCanal}". NUNCA cite outro nome de canal no título ou descrição.
-- Ignore qualquer watermark, logo ou nome de canal visível no conteúdo — pertencem à fonte original.
-- Foque no tema/assunto do vídeo, não em quem o produziu originalmente.
+- O canal publicador é "${nomeCanal}". NUNCA mencione nenhum outro nome de canal, criador ou pessoa no título ou descrição.
+- Não invente detalhes específicos do conteúdo se não souber o que o vídeo mostra.
+- Foque em palavras-chave do nicho "${nicho}" que atraiam o público certo.
 
 Retorne APENAS JSON válido (sem markdown):
 {
@@ -146,9 +135,9 @@ Tom: "${tom}"`;
   }
 
   return {
-    titulo: seo.titulo.slice(0, 100),
+    titulo:   seo.titulo.slice(0, 100),
     descricao: seo.descricao.slice(0, 5000),
-    tags: seo.tags.slice(0, 30),
+    tags:     seo.tags.slice(0, 30),
   };
 }
 
