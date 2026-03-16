@@ -134,10 +134,13 @@ Tom: "${tom}"`;
     throw new Error(`Resposta incompleta: faltam campos titulo/descricao/tags`);
   }
 
+  // Canais cristão e frutas sobem sem descrição
+  const semDescricao = ['cristão', 'frutas'].includes(nicho);
+
   return {
-    titulo:   seo.titulo.slice(0, 100),
-    descricao: seo.descricao.slice(0, 5000),
-    tags:     seo.tags.slice(0, 30),
+    titulo:    seo.titulo.slice(0, 100),
+    descricao: semDescricao ? '' : seo.descricao.slice(0, 5000),
+    tags:      seo.tags.slice(0, 30),
   };
 }
 
