@@ -745,6 +745,9 @@
           <button class="btn btn-secondary btn-full" id="btn-executar-refs" onclick="executarReferencias()">
             ▷ Executar Referências Agora
           </button>
+          <button class="btn btn-secondary btn-full" id="btn-corrigir-seo" onclick="corrigirSEOBatch()">
+            ✎ Corrigir SEO (Cristão + Frutas)
+          </button>
         </div>
       </div>
     </div>
@@ -1118,6 +1121,28 @@
       setStatus(statusEl, e.message, 'err');
     } finally {
       secBody.querySelectorAll('button').forEach(b => b.disabled = false);
+    }
+  }
+
+  // ── Corrigir SEO em lote ───────────────────────────────────────────────────
+
+  async function corrigirSEOBatch() {
+    const btn = document.getElementById('btn-corrigir-seo');
+    btn.disabled = true;
+    btn.textContent = '⏳ Corrigindo...';
+    try {
+      const r = await fetch('/api/corrigir-seo-batch', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ canais: ['canal-cristao', 'frutas-sinceronas'] }),
+      });
+      const data = await r.json();
+      toast(data.mensagem || 'Iniciado.', 'info');
+    } catch (e) {
+      toast('Erro: ' + e.message, 'error');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = '✎ Corrigir SEO (Cristão + Frutas)';
     }
   }
 

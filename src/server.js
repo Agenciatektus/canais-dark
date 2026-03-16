@@ -278,6 +278,85 @@ app.delete('/api/referencia/:rowIndex', async (req, res) => {
   }
 });
 
+/**
+ * POST /api/corrigir-seo-batch
+ * Body: { canais: ['canal-cristao', 'frutas-sinceronas'] }  (opcional — sem body corrige todos)
+ * Re-gera SEO dos vídeos já postados e atualiza no YouTube + planilha.
+ * Responde imediatamente e roda em background; progresso vai para o log do servidor.
+ */
+app.post('/api/corrigir-seo-batch', async (req, res) => {
+  const { canais: filtroCanais } = req.body || {};
+
+  res.json({ success: true, mensagem: 'Correção de SEO iniciada em background. Acompanhe os logs do servidor.' });
+
+  (async () => {
+    const { CHANNELS, getChannelKeys } = require('./channels');
+    const { getAllVideos, salvarSEO }   = require('./sheets');
+    const { atualizarMetadados }        = require('./youtube');
+    const { gerarSEO }                  = require('./seo');
+
+    // Mapa: nome do canal → chave do canal
+    const nomePorChave = {};
+    getChannelKeys().forEach(k => { nomePorChave[CHANNELS[k].name] = k; });
+
+    const todos = await getAllVideos();
+    const alvo  = todos.filter(v => {
+      if (v.status.toLowerCase() !== 'postado') return false;
+      if (!v.linkYoutube) return false;
+      const chave = nomePorChave[v.canal];
+      if (!chave) return false;
+      if (filtroCanais && filtroCanais.length > 0 && !filtroCanais.includes(chave)) return false;
+      return true;
+    });
+
+    console.log(`[CorrigirSEO] ${alvo.length} vídeo(s) postados a corrigir.`);
+
+    let ok = 0, erros = 0;
+    for (const video of alvo) {
+      const chave   = nomePorChave[video.canal];
+      const channel = CHANNELS[chave];
+
+      // Extrai videoId do link do YouTube
+      const ytUrl  = video.linkYoutube;
+      const match  = ytUrl.match(/(?:shorts\/|[?&]v=)([a-zA-Z0-9_-]{11})/);
+      if (!match) {
+        console.warn(`[CorrigirSEO] videoId não encontrado: ${ytUrl}`);
+        erros++;
+        continue;
+      }
+      const videoId = match[1];
+
+      try {
+        const seo = await gerarSEO({
+          videoPath:    null,           // arquivo já não existe localmente
+          nomeArquivo:  video.nomeArquivo,
+          nomeCanal:    channel.name,
+          nicho:        channel.nicho,
+        });
+
+        await atualizarMetadados(channel, videoId, {
+          titulo:   seo.titulo,
+          descricao: seo.descricao,
+          tags:     seo.tags,
+        });
+
+        await salvarSEO(video.rowIndex, seo);
+
+        console.log(`[CorrigirSEO] ✅ ${channel.name} — ${videoId} — "${seo.titulo}"`);
+        ok++;
+      } catch (err) {
+        console.error(`[CorrigirSEO] ❌ ${videoId}: ${err.message}`);
+        erros++;
+      }
+
+      // Pausa entre chamadas para não sobrecarregar a API do YouTube
+      await new Promise(r => setTimeout(r, 1500));
+    }
+
+    console.log(`[CorrigirSEO] Concluído — ${ok} corrigido(s), ${erros} erro(s).`);
+  })().catch(err => console.error('[CorrigirSEO] Erro fatal:', err.message));
+});
+
 function startServer() {
   app.listen(PORT, () => {
     console.log(`[Server] Canais Dark rodando em http://localhost:${PORT}`);
