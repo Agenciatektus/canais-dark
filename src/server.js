@@ -220,6 +220,16 @@ app.post('/api/fila/adicionar', async (req, res) => {
 });
 
 /**
+ * POST /api/referencia/executar
+ * Dispara o ciclo de referências imediatamente (sem aguardar o cron de 4h)
+ */
+app.post('/api/referencia/executar', async (req, res) => {
+  res.json({ success: true, mensagem: 'Ciclo de referências iniciado em background.' });
+  const { cicloReferencia } = require('./referencia');
+  cicloReferencia().catch(err => console.error('❌ Erro ciclo referências:', err.message));
+});
+
+/**
  * GET /api/referencia
  * Lista todos os canais de referência configurados
  */

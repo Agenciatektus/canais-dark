@@ -460,6 +460,9 @@
       <button class="btn-full btn-secondary" style="margin-bottom:8px;" onclick="verificarTodosTokens()">
         🔍 Verificar Tokens
       </button>
+      <button class="btn-full btn-secondary" style="margin-bottom:8px;" id="btn-executar-refs" onclick="executarReferencias()">
+        🔗 Executar Referências Agora
+      </button>
     </div>
   </aside>
 </div>
@@ -747,6 +750,23 @@
         </div>`).join('');
     } catch (e) {
       el.innerHTML = `<div style="color:#f87171;font-size:0.78rem;">Erro: ${escapeHtml(e.message)}</div>`;
+    }
+  }
+
+  async function executarReferencias() {
+    const btn = document.getElementById('btn-executar-refs');
+    btn.disabled = true;
+    btn.textContent = '⏳ Executando...';
+    try {
+      const r = await fetch('/api/referencia/executar', { method: 'POST' });
+      const data = await r.json();
+      mostrarMsg(data.mensagem || 'Ciclo iniciado.', 'info');
+      setTimeout(() => { carregarDados(); carregarReferencias(); }, 3000);
+    } catch (e) {
+      mostrarMsg('Erro: ' + e.message, 'error');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = '🔗 Executar Referências Agora';
     }
   }
 
