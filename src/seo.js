@@ -52,7 +52,8 @@ async function analisarConteudo(framesBase64, nomeCanal, nicho) {
     {
       type: 'text',
       text: `Você está analisando frames de um vídeo do canal "${nomeCanal}" (nicho: ${nicho}).
-Descreva brevemente o que aparece nas imagens: o tema, o que está sendo mostrado, textos visíveis, ambiente, etc.
+Descreva brevemente o TEMA e o CONTEÚDO do vídeo: o que está acontecendo, o assunto principal, o ambiente.
+IMPORTANTE: Ignore completamente qualquer watermark, logo, nome de canal ou texto sobreposto que apareça nas imagens — esses pertencem à fonte original e NÃO devem ser mencionados.
 Seja objetivo e direto. Máximo 3 linhas.`,
     },
     ...framesBase64.map(b64 => ({
@@ -98,12 +99,23 @@ async function gerarSEO({ videoPath, nomeArquivo, nomeCanal, nicho }) {
     ? `Conteúdo real do vídeo (analisado por visão computacional):\n"${descricaoConteudo}"`
     : `Nome do arquivo: "${nomeArquivo.replace(/\.[^.]+$/, '').replace(/[-_]/g, ' ')}"`;
 
+  const tom = nicho === 'cristão'
+    ? 'espiritual, edificante'
+    : nicho === 'frutas'
+      ? 'informativo, curioso'
+      : 'engajante';
+
   const prompt = `Você é especialista em SEO para YouTube no Brasil.
 
-Canal: "${nomeCanal}" | Nicho: "${nicho}"
+Canal publicador: "${nomeCanal}" | Nicho: "${nicho}"
 ${contexto}
 
 Gere o SEO para este YouTube Short em português brasileiro.
+REGRAS OBRIGATÓRIAS:
+- O canal publicador é "${nomeCanal}". NUNCA cite outro nome de canal no título ou descrição.
+- Ignore qualquer watermark, logo ou nome de canal visível no conteúdo — pertencem à fonte original.
+- Foque no tema/assunto do vídeo, não em quem o produziu originalmente.
+
 Retorne APENAS JSON válido (sem markdown):
 {
   "titulo": "máx 60 chars, direto, palavra-chave no início",
@@ -111,7 +123,7 @@ Retorne APENAS JSON válido (sem markdown):
   "tags": ["8 a 10 tags relevantes sem #"]
 }
 
-Tom: "${nicho === 'cristão' ? 'espiritual, edificante' : nicho === 'frutas' ? 'informativo, curioso' : 'engajante'}"`;
+Tom: "${tom}"`;
 
   const message = await client.messages.create({
     model: 'claude-haiku-4-5-20251001',
